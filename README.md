@@ -1,4 +1,4 @@
-mebike
+My Bike Data
 ======
 
-Personal biking stuff
+Code for [MyBike shiny application](https://ouzor.shinyapps.io/mybike/) and related data processing.
