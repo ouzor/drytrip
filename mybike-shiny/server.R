@@ -6,8 +6,14 @@ library("ggmap")
 library("Rforecastio")
 library("xtable")
 library("googleVis")
+# Test these?
+library("fmi")
+library("rgdal")
 
+# Read API keys for fio and fmi
 fio.api.key <- scan(file="dark_sky_api.txt", what="character")
+fmi.api.key <- scan(file="fmi_api.txt", what="character")
+
 
 
 # theme_set(theme_grey(20))
@@ -81,33 +87,61 @@ shinyServer(function (input, output) {
                              "precipIntensity", "precipProbability",
                              "temperature", "apparentTemperature", "humidity",
                              "windSpeed", "windBearing")]
-#    names(hourly.df)[c(3,4,6,8,9)] <- c("precip\nintensity", "precip\nprobability",
- #                                       "apparent\ntemperature", "wind\nspeed", "wind\nbearing")
+    #    names(hourly.df)[c(3,4,6,8,9)] <- c("precip\nintensity", "precip\nprobability",
+    #                                       "apparent\ntemperature", "wind\nspeed", "wind\nbearing")
     # Show required number of hours
     hourly.df <- hourly.df[1:input$forecast.length, ]
     
     return(gvisTable(hourly.df))#, options=list(page='enable', pageSize=20)))
   })
   
-#   output$fio_xtable <- renderTable({
-#     hourly.df <- get_fio()
-#     message(head(hourly.df))
-#     
-#     return(hourly.df)
-#   })
-
-  ## BIKE ACCIDENTS #####
-output$accidents_plot <- renderPlot({
-  route.points.df <- get_route()
-  if (is.null(route.points.df))
-    stop("Please define route")
-
-  p.accidents <- ggmap(hel.map) + 
-    geom_path(data=route.points.df, aes(x=x, y=y), colour="blue", size=3) + 
-    xlim(range(route.points.df$x)+c(-0.01, 0.01)) + 
-    ylim(range(route.points.df$y)+c(-0.01, 0.01)) +
-    geom_point(data=accidents.df, aes(x=Lon, y=Lat), alpha=0.1, colour="red")
-  return(p.accidents)
-})
-
+  #   output$fio_xtable <- renderTable({
+  #     hourly.df <- get_fio()
+  #     message(head(hourly.df))
+  #     
+  #     return(hourly.df)
+  #   })
+  
+  ## FORECAST FROM FMI ######
+  get_fmi <- reactive({
+    message("Retreiving forecast data from fmi")
+  
+    request <- FMIWFSRequest(apiKey=fmi.api.key)
+    request$setParameters(request="getFeature",
+                          starttime="2014-10-30T20:00:00Z",
+                          endtime="2014-10-30T22:00:00Z",
+                          timestep="15",
+                          storedquery_id="fmi::forecast::hirlam::surface::point::timevaluepair",
+                          place="helsinki",
+                          parameters="Temperature,Humidity,WindDirection,WindSpeedMS,WeatherSymbol3,Precipitation1h,PrecipitationAmount")
+    client <- FMIWFSClient()
+    layers <- client$listLayers(request=request)
+    response <- client$getLayer(request=request, layer=layers[1], crs="+proj=longlat +datum=WGS84", swapAxisOrder=TRUE, parameters=list(splitListFields=TRUE, explodeCollections=TRUE))
+    return(response@data)
+  })
+  
+  output$fmi_gvistable <- renderGvis({
+    message("Creating forecast table")
+    fmi.df <- get_fmi()
+    
+    return(gvisTable(fmi.df))#, options=list(page='enable', pageSize=20)))
+  })
+  
+  
+  
+  ## BIKE ACCIDENTS #########
+  
+  output$accidents_plot <- renderPlot({
+    route.points.df <- get_route()
+    if (is.null(route.points.df))
+      stop("Please define route")
+    
+    p.accidents <- ggmap(hel.map) + 
+      geom_path(data=route.points.df, aes(x=x, y=y), colour="blue", size=3) + 
+      xlim(range(route.points.df$x)+c(-0.01, 0.01)) + 
+      ylim(range(route.points.df$y)+c(-0.01, 0.01)) +
+      geom_point(data=accidents.df, aes(x=Lon, y=Lat), alpha=0.1, colour="red")
+    return(p.accidents)
+  })
+  
 })

@@ -61,7 +61,8 @@ shinyUI(fluidPage(
                  
                  conditionalPanel(
                    condition = "input.forecastSource == 'fmi'",
-                   h3("Feature to be implemented")
+                   h3("Feature to be implemented"),
+                   htmlOutput("fmi_gvistable")
                  ),
                  h3("TODO"),
                  p("- Fix time to start from the correct hour"),
@@ -84,7 +85,8 @@ shinyUI(fluidPage(
                  h3("Idea"),
                  p("To be added"),
                  h3("Data sources"),
-                 p("To be added")
+                 p("To be added: journey planner, forecast.io, fmi, accidents from hri"),
+                 p("New data: digitraffic?")
         )
       )
     )

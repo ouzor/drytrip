@@ -9,10 +9,10 @@ library("fmi")
 library("rgdal")
 message("Remember to open RStudio with 'open -a rstudio'")
 
-apiKey <- scan(file="fmi_api.txt", what="character")
+fmi.api.key <- scan(file="mybike-shiny/fmi_api.txt", what="character")
 
 # Get historical weather data
-request <- FMIWFSRequest(apiKey=apiKey)
+request <- FMIWFSRequest(fmi.api.key=fmi.api.key)
 request$setParameters(request="getFeature",
                       storedquery_id="fmi::observations::weather::daily::timevaluepair",
                       starttime="2014-01-01",
@@ -26,7 +26,7 @@ response <- client$getLayer(request=request, layer=layers[1], crs="+proj=longlat
 # process output
 temp <- response@data$gml_id[1]
 
-request <- FMIWFSRequest(apiKey=apiKey)
+request <- FMIWFSRequest(fmi.api.key=fmi.api.key)
 client <- FMIWFSClient()
 response <- client$getDailyWeather(request=request, 
                                    startDateTime=as.POSIXlt("2013-01-01"), 
@@ -36,30 +36,30 @@ response <- client$getDailyWeather(request=request,
 
 
 # # Does not work
-# request <- FMIWFSRequest(apiKey=apiKey)
+# request <- FMIWFSRequest(fmi.api.key=fmi.api.key)
 # request$setParameters(request="getFeature", storedquery_id="fmi::forecast::hirlam::surface::point::multipointcoverage", place="helsinki")
 # client <- FMIWFSClient()
 # layers <- client$listLayers(request=request)
 # response <- client$getLayer(request=request, layer=layers[1], crs="+proj=longlat +datum=WGS84", swapAxisOrder=TRUE, parameters=list(splitListFields=TRUE))
 
-# request <- FMIWFSRequest(apiKey=apiKey)
+# request <- FMIWFSRequest(fmi.api.key=fmi.api.key)
 # request$setParameters(request="getFeature", storedquery_id="fmi::forecast::hirlam::surface::obsstations::timevaluepair")
 # client <- FMIWFSClient()
 # layers <- client$listLayers(request=request)
 # response <- client$getLayer(request=request, layer=layers[1], crs="+proj=longlat +datum=WGS84", swapAxisOrder=TRUE, parameters=list(splitListFields=TRUE))
 
 # Works now!
-request <- FMIWFSRequest(apiKey=apiKey)
+request <- FMIWFSRequest(fmi.api.key=fmi.api.key)
 request$setParameters(request="getFeature", storedquery_id="fmi::forecast::hirlam::surface::point::timevaluepair", place="helsinki")
 client <- FMIWFSClient()
 layers <- client$listLayers(request=request)
 response.all <- client$getLayer(request=request, layer=layers[1], crs="+proj=longlat +datum=WGS84", swapAxisOrder=TRUE, parameters=list(splitListFields=TRUE, explodeCollections=TRUE))
 
 # Try to add parameters
-request <- FMIWFSRequest(apiKey=apiKey)
+request <- FMIWFSRequest(fmi.api.key=fmi.api.key)
 request$setParameters(request="getFeature",
-                      starttime="2014-10-28T20:00:00Z",
-                      endtime="2014-10-28T22:00:00Z",
+                      starttime="2014-10-30T20:00:00Z",
+                      endtime="2014-10-30T22:00:00Z",
                       timestep="15",
                       timesteps="10",
                       storedquery_id="fmi::forecast::hirlam::surface::point::timevaluepair",
