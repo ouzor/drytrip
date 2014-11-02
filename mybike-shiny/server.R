@@ -1,13 +1,13 @@
 library("rjson")
 library("RCurl")
 library("reshape2")
+library("Rforecastio")
 library("ggplot2")
 theme_set(theme_bw(16))
+library("gridExtra")
 library("ggmap")
-library("Rforecastio")
 #library("xtable")
 # library("googleVis")
-library("gridExtra")
 # # Test these?
 # library("fmi")
 # library("rgdal")
@@ -76,7 +76,7 @@ shinyServer(function (input, output) {
     route.km <- sum(route.summary.df$length)/1000
     texts <- list()
     texts[[1]] <- paste("Route length:", round(route.km, d=2), "km")
-    texts[[2]] <- paste("Time estimate at", input$cycling.speed, "km/h is", round(route.km/input$cycling.speed, d=1), "hours")
+    texts[[2]] <- paste("Time estimate at", input$cycling.speed, "km/h:", round(route.km/input$cycling.speed, d=1), "hours")
     route.text <- paste("<big>", paste(unlist(texts), collapse="<br>"), "</big>") 
     return(route.text)
   })
@@ -109,8 +109,9 @@ shinyServer(function (input, output) {
   })
   
   ## WEATHER FORECAST #######
+  
   get_fio <- reactive({
-    message("Retreiving forecast data from forecast.io")
+    message("Retrieving forecast data from forecast.io")
     # Get forecast for each waypoint
     waypoints.df <- get_waypoints()
     fio.list <- lapply(waypoints.df$Ind, function(i) {res=fio.forecast(fio.api.key, waypoints.df$lat[i], waypoints.df$lon[i])$hourly.df; res$WP=i; res})
@@ -121,9 +122,6 @@ shinyServer(function (input, output) {
     fio.df$date <- as.Date(fio.df$time)#format(fio.df$time, "%Y-%M-%D")
     fio.df$start.hour <- as.numeric(format(fio.df$time, "%H")) - fio.df$WP + 1
     return(fio.df)   
-    # start.coords <- geocode_place(input$start.address)    
-    #    fio.list <- fio.forecast(fio.api.key, start.coords["lat"], start.coords["lon"])
-    #    return(fio.list$hourly.df)
   })
   
   output$fio_plot <- renderPlot({
@@ -131,17 +129,23 @@ shinyServer(function (input, output) {
     # subset based on date and start time
     fio.df <- subset(fio.df, date==fio.df$date[1] & start.hour %in% (1:input$forecast.length+fio.df$start.hour[1]-1))
     fio.df$start.hour <- paste0(fio.df$start.hour, ":00")
-    p.precip <- ggplot(fio.df, aes(x=WP, y=precipIntensity)) + geom_area(fill="lightblue") + 
+    fio.df$WP <- as.character(fio.df$WP)
+    p.precip <- ggplot(fio.df, aes(x=WP, y=precipIntensity)) + 
+      geom_area(aes(group=start.hour), fill="blue") + 
+      geom_point(size=3, colour="blue") + 
       facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
-      labs(x="Waypoint", y=NULL) + ggtitle("Precipitation intensity")
-    p.temp <- ggplot(fio.df, aes(x=WP, y=temperature)) + geom_line(size=2, colour="red") + 
+      labs(x="Waypoint", y=NULL) + ggtitle("Precipitation intensity") +
+      geom_hline(y=0, linetype="dashed")
+    p.temp <- ggplot(fio.df, aes(x=WP, y=temperature)) + 
+      geom_line(aes(group=start.hour), size=1.5, colour="red") + 
+      geom_point(size=3, colour="red") + 
       facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
       labs(x="Waypoint", y=NULL) + ggtitle("Temperature") + 
       ylim(min(-1, min(fio.df$temperature)), max(11, max(fio.df$temperature))) +
       geom_hline(y=0, linetype="dashed")
     p.wind <- ggplot(fio.df, aes(x=WP, y=windSpeed)) + #geom_line(colour="blue") + 
-      geom_point(size=8, colour="blue") + 
-      geom_text(label="V", colour="white", aes(angle=windBearing)) + 
+      geom_point(size=8, colour="lightblue") + 
+      geom_text(label="V", colour="black", aes(angle=windBearing)) + 
       facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
       labs(x="Waypoint", y=NULL) + ggtitle("Wind speed (m/s) and direction") +
       ylim(min(-1, min(fio.df$temperature)), max(11, max(fio.df$temperature))) +
@@ -206,12 +210,12 @@ shinyServer(function (input, output) {
     return(response@data)
   })
   
-  output$fmi_gvistable <- renderGvis({
-    message("Creating forecast table")
-    fmi.df <- get_fmi()
-    
-    return(gvisTable(fmi.df))#, options=list(page='enable', pageSize=20)))
-  })
+#   output$fmi_gvistable <- renderGvis({
+#     message("Creating forecast table")
+#     fmi.df <- get_fmi()
+#     
+#     return(gvisTable(fmi.df))#, options=list(page='enable', pageSize=20)))
+#   })
   
   
   

@@ -47,7 +47,7 @@ shinyUI(fluidPage(
       sliderInput("cycling.speed", "Cycling speed (km/h)", min=10, max=40, value=20, step = 5),
       # sliderInput("waypoint.interval", "Waypoint interval (minutes)", min=60, max=120, value=60, step=60),
       htmlOutput("route_info"),
-      h4("Map with route and waypoints (one hour distance):"),
+      h4("Route map with waypoints every one hour"),
       plotOutput("route_map_ggplot"),
       #                    h3("Plot route profile"),
       #                    p("Note! x-axis needs to be fixed to match the distance!"),
@@ -58,9 +58,10 @@ shinyUI(fluidPage(
                   choices=c("Forecast.io" = "fio", "FMI" = "fmi"), selected="fio"),
       conditionalPanel(
         condition = "input.forecastSource == 'fio'",
-        sliderInput("forecast.length", "Number of staring hours to show",
+        sliderInput("forecast.length", "Number of starting hours to show",
                     min=1, max=10, value=5, step = 1),
-        h4("Weather forecast at each waypoint for different start times"),
+        h4("Weather forecast at each waypoint for different starting hours"),
+        p("Note! Start times are in GMT+0 time zone currently, need to ne fixed!"),
         uiOutput("fio_plot_ui") # plotOutput("fio_plot")
       ),
       
