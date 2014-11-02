@@ -12,21 +12,31 @@ process_path <- function(path.point) {
   return(points.df)
 }
 
-summarise_path <- function(route.list) {
+summarise_route <- function(route.list) {
   
-  route.info.df <- as.data.frame(t(sapply(route.list$path, function(x) c(x$name, x$type, x$length))), stringsAsFactors = FALSE)
-  names(route.info.df) <- c("name", "type", "length")
-  route.info.df$length <- as.numeric(route.summary.df$length)
+  route.info.df <- as.data.frame(t(sapply(route.list$path, function(x) c(x$name, x$type, x$length, x$points[[1]]$x, x$points[[1]]$y))), stringsAsFactors = FALSE)
+  names(route.info.df) <- c("name", "type", "length", "lon", "lat")
+  route.info.df$length <- as.numeric(route.info.df$length)
+  route.info.df$lon <- as.numeric(route.info.df$lon)
+  route.info.df$lat <- as.numeric(route.info.df$lat)
+  return(route.info.df)
 }
 
 # Get route
-cycling_route <- function(start.coords, end.coords, profile="kleroshortest") {
+cycling_route <- function(start.coords, end.coords, via.coords=NULL, profile="kleroshortest") {
+  
+  api.url <- "api.reittiopas.fi/hsl/prod/?request=cycling&user=ouzor&pass=louhos&format=json&epsg_in=wgs84&epsg_out=wgs84&elevation=1"
   # Process input
   from <- paste(start.coords, collapse=",")
   to <- paste(end.coords, collapse=",")
+  if (!is.null(via.coords)) {
+    via.list <- lapply(via.coords, function(x) paste(x, collapse=","))
+    via <- do.call(paste, c(via.list, list(sep="|")))
+    query.url <- paste0(api.url, "&from=", from, "&to=", to, "&via=", via, "&profile=", profile)
+  } else {
+    query.url <- paste0(api.url, "&from=", from, "&to=", to, "&profile=", profile)
+  }
   
-  api.url <- "api.reittiopas.fi/hsl/prod/?request=cycling&user=ouzor&pass=louhos&format=json&epsg_in=wgs84&epsg_out=wgs84&elevation=1"
-  query.url <- paste0(api.url, "&from=", from, "&to=", to, "&profile=", profile)
   curl <- RCurl::getCurlHandle(cookiefile = "")
   res.json <- suppressWarnings(RCurl::getForm(uri=query.url, curl=curl))
   res.list <- rjson::fromJSON(res.json)
@@ -35,7 +45,7 @@ cycling_route <- function(start.coords, end.coords, profile="kleroshortest") {
 }
 
 # Geocode call
-geocode_journey <- function(query) {
+geocode_place <- function(query) {
   
   # Replace space
   query <- gsub(" ", "%20", query)
