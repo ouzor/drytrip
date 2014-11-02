@@ -2,19 +2,19 @@ library("rjson")
 library("RCurl")
 library("reshape2")
 library("ggplot2")
+theme_set(theme_bw(16))
 library("ggmap")
 library("Rforecastio")
-library("xtable")
-library("googleVis")
-# Test these?
-library("fmi")
-library("rgdal")
+#library("xtable")
+# library("googleVis")
+library("gridExtra")
+# # Test these?
+# library("fmi")
+# library("rgdal")
 
 # Read API keys for fio and fmi
 fio.api.key <- scan(file="dark_sky_api.txt", what="character")
 fmi.api.key <- scan(file="fmi_api.txt", what="character")
-
-
 
 # theme_set(theme_grey(20))
 # library(grid)
@@ -23,7 +23,7 @@ fmi.api.key <- scan(file="fmi_api.txt", what="character")
 source("functions.R")
 
 # Load helsinki region map
-load("helsinki_map1.RData")
+load("helsinki_map_stamen-toner.RData")
 
 # Load bicycle accident data (for Helsinki only)
 # load("bike_accidents.RData")
@@ -33,12 +33,11 @@ shinyServer(function (input, output) {
   ## CYCLING ROUTE #######
   get_route <- reactive({
     message("Retreiving route data")
-#     if (is.null(input$start.address) | is.null(input$end.address))
-#       return(NULL)
+    #     if (is.null(input$start.address) | is.null(input$end.address))
+    #       return(NULL)
     start.coords <- geocode_place(input$start.address)
     end.coords <- geocode_place(input$end.address)
     if (input$via.addresses!="") {
-      message("test1")
       via.addresses <- unlist(strsplit(input$via.addresses, split=";"))
       if (length(via.addresses) > 5)
         stop("Maximum number of via points is five!")
@@ -52,9 +51,25 @@ shinyServer(function (input, output) {
       route.list <- cycling_route(start.coords, end.coords)
     }
     route.points.df <- do.call(rbind, lapply(route.list$path, process_path))
-    route.summary.df <- summarise_route(route.list)
+    route.summary.df <- summarise_route(route.list)    
     return(list(points=route.points.df, summary=route.summary.df))
   })  
+  
+  get_waypoints <- reactive({
+    
+    route.summary.df <- get_route()$summary
+    route.summary.df$CumLength <- cumsum(route.summary.df$length)/1000
+    route.summary.df$Time <- route.summary.df$CumLength/input$cycling.speed
+    # Waypoints 
+    waypoint.interval <- 60
+    waypoint.times <- seq(from=0, 
+                          to=floor(route.summary.df$Time[nrow(route.summary.df)]),
+                          by=waypoint.interval/60)
+    waypoint.inds <- sapply(waypoint.times, function(x) which(route.summary.df$Time>x)[1])
+    waypoints.df <- route.summary.df[waypoint.inds, ]
+    waypoints.df$Ind <- 1:nrow(waypoints.df)
+    return(waypoints.df)
+  })
   
   output$route_info <- renderText({
     route.summary.df <- get_route()$summary
@@ -69,10 +84,13 @@ shinyServer(function (input, output) {
   output$route_map_ggplot <- renderPlot({
     message("Plotting route map")
     route.points.df <- get_route()$points
-#     if (is.null(route.points.df))
-#       stop("Please define route")
+    waypoints.df <- get_waypoints()
+    #     if (is.null(route.points.df))
+    #       stop("Please define route")
     p.route <- ggmap(hel.map) + 
-      geom_path(data=route.points.df, aes(x=x, y=y), colour="red", size=3) + # colour=z
+      geom_path(data=route.points.df, aes(x=x, y=y), colour="blue", size=3) + # colour=z
+      geom_point(data=waypoints.df, colour="red", size=10) + 
+      geom_text(data=waypoints.df, aes(label=Ind), colour="white") +
       xlim(range(route.points.df$x)+c(-0.01, 0.01)) + 
       ylim(range(route.points.df$y)+c(-0.01, 0.01)) +
       labs(x=NULL, y=NULL, colour="Elevation")
@@ -93,29 +111,75 @@ shinyServer(function (input, output) {
   ## WEATHER FORECAST #######
   get_fio <- reactive({
     message("Retreiving forecast data from forecast.io")
-    # Use forecast.io
-    start.coords <- geocode_journey(input$start.address)
-    fio.list <- fio.forecast(fio.api.key, start.coords["lat"], start.coords["lon"])
-    return(fio.list$hourly.df)
+    # Get forecast for each waypoint
+    waypoints.df <- get_waypoints()
+    fio.list <- lapply(waypoints.df$Ind, function(i) {res=fio.forecast(fio.api.key, waypoints.df$lat[i], waypoints.df$lon[i])$hourly.df; res$WP=i; res})
+    fio.df <- do.call(rbind, fio.list)
+    # Simplify for now
+    fio.df <- fio.df[c("time", "precipIntensity", "temperature", "windSpeed", "windBearing", "WP")]
+    # Process times and waypoints
+    fio.df$date <- as.Date(fio.df$time)#format(fio.df$time, "%Y-%M-%D")
+    fio.df$start.hour <- as.numeric(format(fio.df$time, "%H")) - fio.df$WP + 1
+    return(fio.df)   
+    # start.coords <- geocode_place(input$start.address)    
+    #    fio.list <- fio.forecast(fio.api.key, start.coords["lat"], start.coords["lon"])
+    #    return(fio.list$hourly.df)
   })
   
-  output$fio_gvistable <- renderGvis({
-    message("Creating forecast table")
-    hourly.df <- get_fio()
-    # Format time to show only Hours:Minutes
-    hourly.df$time <- format(hourly.df$time, "%H:%M")
-    # Filter fields
-    hourly.df <- hourly.df[c("time", "summary",
-                             "precipIntensity", "precipProbability",
-                             "temperature", "apparentTemperature", "humidity",
-                             "windSpeed", "windBearing")]
-    #    names(hourly.df)[c(3,4,6,8,9)] <- c("precip\nintensity", "precip\nprobability",
-    #                                       "apparent\ntemperature", "wind\nspeed", "wind\nbearing")
-    # Show required number of hours
-    hourly.df <- hourly.df[1:input$forecast.length, ]
-    
-    return(gvisTable(hourly.df))#, options=list(page='enable', pageSize=20)))
+  output$fio_plot <- renderPlot({
+    fio.df <- get_fio()
+    # subset based on date and start time
+    fio.df <- subset(fio.df, date==fio.df$date[1] & start.hour %in% (1:input$forecast.length+fio.df$start.hour[1]-1))
+    fio.df$start.hour <- paste0(fio.df$start.hour, ":00")
+    p.precip <- ggplot(fio.df, aes(x=WP, y=precipIntensity)) + geom_area(fill="lightblue") + 
+      facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
+      labs(x="Waypoint", y=NULL) + ggtitle("Precipitation intensity")
+    p.temp <- ggplot(fio.df, aes(x=WP, y=temperature)) + geom_line(size=2, colour="red") + 
+      facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
+      labs(x="Waypoint", y=NULL) + ggtitle("Temperature") + 
+      ylim(min(-1, min(fio.df$temperature)), max(11, max(fio.df$temperature))) +
+      geom_hline(y=0, linetype="dashed")
+    p.wind <- ggplot(fio.df, aes(x=WP, y=windSpeed)) + #geom_line(colour="blue") + 
+      geom_point(size=8, colour="blue") + 
+      geom_text(label="V", colour="white", aes(angle=windBearing)) + 
+      facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
+      labs(x="Waypoint", y=NULL) + ggtitle("Wind speed (m/s) and direction") +
+      ylim(min(-1, min(fio.df$temperature)), max(11, max(fio.df$temperature))) +
+      geom_hline(y=0, linetype="dashed")
+#     p.wind2 <- ggplot(fio.df, aes(x=WP)) +perature))) + 
+#       geom_point(aes(size=windSpeed), y=1, colour="blue") + 
+#       geom_text(aes(size=windSpeed, angle=windBearing), y=1, label="V", colour="white") +    
+#       facet_grid(start.hour ~ .) + theme(strip.text.y=element_text(angle=0)) +
+#       labs(x="Waypoint", y=NULL) + ggtitle("Wind speed (m/s) and direction") +
+#       ylim(0, 2) + scale_size_continuous(limits=c(0, max(fio.df$windSpeed)))
+      
+    p.fio <- arrangeGrob(p.precip, p.temp, p.wind, nrow=1)
+    return(p.fio)
   })
+
+  output$fio_plot_ui <- renderUI({
+
+    h <- max(200, 100*input$forecast.length)
+    plotOutput("fio_plot", height=paste0(h,"px"), width="100%")
+  })
+  
+#   output$fio_gvistable <- renderGvis({
+#     message("Creating forecast table")
+#     hourly.df <- get_fio()
+#     # Format time to show only Hours:Minutes
+#     hourly.df$time <- format(hourly.df$time, "%H:%M")
+#     # Filter fields
+#     hourly.df <- hourly.df[c("time", "summary",
+#                              "precipIntensity", "precipProbability",
+#                              "temperature", "apparentTemperature", "humidity",
+#                              "windSpeed", "windBearing")]
+#     #    names(hourly.df)[c(3,4,6,8,9)] <- c("precip\nintensity", "precip\nprobability",
+#     #                                       "apparent\ntemperature", "wind\nspeed", "wind\nbearing")
+#     # Show required number of hours
+#     hourly.df <- hourly.df[1:input$forecast.length, ]
+#     
+#     return(gvisTable(hourly.df))#, options=list(page='enable', pageSize=20)))
+#   })
   
   #   output$fio_xtable <- renderTable({
   #     hourly.df <- get_fio()
@@ -127,7 +191,7 @@ shinyServer(function (input, output) {
   ## FORECAST FROM FMI ######
   get_fmi <- reactive({
     message("Retreiving forecast data from fmi")
-  
+    
     request <- FMIWFSRequest(apiKey=fmi.api.key)
     request$setParameters(request="getFeature",
                           starttime="2014-10-30T20:00:00Z",
@@ -151,19 +215,19 @@ shinyServer(function (input, output) {
   
   
   
-  ## BIKE ACCIDENTS #########
-  
-  output$accidents_plot <- renderPlot({
-    route.points.df <- get_route()
-    if (is.null(route.points.df))
-      stop("Please define route")
-    
-    p.accidents <- ggmap(hel.map) + 
-      geom_path(data=route.points.df, aes(x=x, y=y), colour="blue", size=3) + 
-      xlim(range(route.points.df$x)+c(-0.01, 0.01)) + 
-      ylim(range(route.points.df$y)+c(-0.01, 0.01)) +
-      geom_point(data=accidents.df, aes(x=Lon, y=Lat), alpha=0.1, colour="red")
-    return(p.accidents)
-  })
+  #   ## BIKE ACCIDENTS #########
+  #   
+  #   output$accidents_plot <- renderPlot({
+  #     route.points.df <- get_route()
+  #     if (is.null(route.points.df))
+  #       stop("Please define route")
+  #     
+  #     p.accidents <- ggmap(hel.map) + 
+  #       geom_path(data=route.points.df, aes(x=x, y=y), colour="blue", size=3) + 
+  #       xlim(range(route.points.df$x)+c(-0.01, 0.01)) + 
+  #       ylim(range(route.points.df$y)+c(-0.01, 0.01)) +
+  #       geom_point(data=accidents.df, aes(x=Lon, y=Lat), alpha=0.1, colour="red")
+  #     return(p.accidents)
+  #   })
   
 })

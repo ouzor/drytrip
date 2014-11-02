@@ -31,9 +31,12 @@ library("ggmap")
 # route.map <- ggmap::get_map(location=route.bbox, source="osm", crop=TRUE, color="bw")
 
 # Get one map for helsinki region and crop for route
-hel.bbox <- c(24, 60.1, 25.25, 60.4)
-hel.map <- ggmap::get_map(location=hel.bbox, source="osm", crop=TRUE, color="bw")
+hel.bbox <- c(24.5, 60.1, 25.3, 60.4)
+# hel.map <- ggmap::get_map(location=hel.bbox, source="osm", color="bw")#, crop=TRUE)
 # save(hel.map, file="mybike-shiny/helsinki_map1.RData")
+hel.map <- ggmap::get_map(location=hel.bbox, source="stamen", maptype="toner")
+save(hel.map, file="mybike-shiny/helsinki_map_stamen-toner.RData")
+
 load("mybike-shiny/helsinki_map1.RData")
 
 # Plot map and route
