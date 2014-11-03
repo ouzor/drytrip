@@ -3,6 +3,8 @@ DryTrip
 
 Source code for [DryTrip - Cycling trip planner](https://ouzor.shinyapps.io/drytrip/) R Shiny application and related data processing.
 
+![DryTrip logo](/drytrip-shiny/www/drytrip_logo.jpg)
+
 ### Development plans
 
 Features to be added

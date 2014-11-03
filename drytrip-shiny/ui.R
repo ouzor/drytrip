@@ -4,6 +4,7 @@ shinyUI(fluidPage(
   tags$head(includeScript("google-analytics.js")),
   
   # Application title
+#  img(src='drytrip_logo.jpg', align = "left", width="150px"),
   titlePanel("DryTrip - Cycling trip planner"),
   
   sidebarLayout(position="right",
@@ -34,7 +35,8 @@ shinyUI(fluidPage(
     mainPanel(
       #       tabsetPanel(
       #         tabPanel("Route",
-      
+      img(src='drytrip_logo.jpg', width="150px"),
+
       h3("1. Define cycling route"),
       selectInput("routeSource", "Route source", choices=c("Reittiopas API" = "reittiopas", "GPX upload" = "gpxupload"), selected="reittiopas"),
       
