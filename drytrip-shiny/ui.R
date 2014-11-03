@@ -6,7 +6,7 @@ shinyUI(fluidPage(
   # Application title
   titlePanel("DryTrip - Cycling trip planner"),
   
-  sidebarLayout(
+  sidebarLayout(position="right",
     sidebarPanel(
       # Adjust size
       tags$head(
@@ -35,7 +35,7 @@ shinyUI(fluidPage(
       #       tabsetPanel(
       #         tabPanel("Route",
       
-      h3("Define cycling route"),
+      h3("1. Define cycling route"),
       selectInput("routeSource", "Route source", choices=c("Reittiopas API" = "reittiopas", "GPX upload" = "gpxupload"), selected="reittiopas"),
       
       conditionalPanel(
@@ -45,7 +45,7 @@ shinyUI(fluidPage(
         textInput("via.addresses", "Via (separate with ';')", value= "Olari;Nuuksio;Leppävaara"),
         #  submitButton("Submit"),
         # http://stackoverflow.com/questions/17704182/r-submitbutton-and-conditionalpanel
-        h3("Route info"),
+        h3("2. Check route info"),
         sliderInput("cycling.speed", "Cycling speed (km/h)", min=10, max=40, value=20, step = 5),
         # sliderInput("waypoint.interval", "Waypoint interval (minutes)", min=60, max=120, value=60, step=60),
         htmlOutput("route_info"),
@@ -55,7 +55,7 @@ shinyUI(fluidPage(
         #                    h3("Plot route profile"),
         #                    p("Note! x-axis needs to be fixed to match the distance!"),
         #                    plotOutput("route_profile_ggplot")
-        h3("Weather forecast"),
+        h3("3. Check weather forecast"),
         selectInput("forecastSource", "Weather forecast source",
                     choices=c("Forecast.io" = "fio", "FMI" = "fmi"), selected="fio"),
         conditionalPanel(
