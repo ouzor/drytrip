@@ -1,4 +1,4 @@
-My Bike Data
+DryTrip
 ======
 
-Code for [MyBike shiny application](https://ouzor.shinyapps.io/mybike/) and related data processing.
+Source code for [DryTrip - Cycling trip lanner](https://ouzor.shinyapps.io/drytrip/) R Shiny application and related data processing.

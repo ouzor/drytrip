@@ -1,5 +1,13 @@
 # Test forecast.io
 
+
+# input = list()
+# input$start.address = "Kamppi"
+# input$end.address = "Kamppi"
+# input$via.addresses = "Olari;Nuuksio;Leppävaara"
+# input$cycling.speed = 20
+# input$forecast.length=5
+
 library(devtools)
 # Had to fork to change to use SI units
 install_github("ouzor/Rforecastio")
@@ -8,7 +16,7 @@ library(Rforecastio)
 library(ggplot2)
 library(plyr)
 
-fio.api.key <- scan(file="mybike-shiny/dark_sky_api.txt", what="character")
+fio.api.key <- scan(file="drytrip-shiny/dark_sky_api.txt", what="character")
 
 # my.latitude = "43.2673"
 # my.longitude = "-70.8618"
@@ -27,6 +35,4 @@ lon <- "24.80071"
 lat <- "60.18348"
 fio.list <- fio.forecast(fio.api.key, lat, lon)#sslverifypeer=FALSE)
 
-"https://api.forecast.io/forecast/6c09ad5ceef1835696562448cae6e68c/60.18348,24.80071/?units=si" 
-# Plot
-# p.fio <- ffplot(fio.list$hourly.df, aes(x=))
+# "https://api.forecast.io/forecast/6c09ad5ceef1835696562448cae6e68c/60.18348,24.80071/?units=si" 
