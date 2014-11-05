@@ -44,7 +44,7 @@ shinyUI(fluidPage(
         condition = "input.routeSource == 'reittiopas'",
         textInput("start.address", "Start address", value = "Kamppi"),
         textInput("end.address", "End address", value = "Kamppi"),
-        textInput("via.addresses", "Via (separate with ';')", value= "Olari;Nuuksio;Leppävaara"),
+        textInput("via.addresses", "Via (separate with '_')", value= "Olari_Nuuksio_Leppävaara"),
         #  submitButton("Submit"),
         # http://stackoverflow.com/questions/17704182/r-submitbutton-and-conditionalpanel
         h3("2. Check route info"),

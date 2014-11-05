@@ -2,8 +2,7 @@
 .Rhistory
 .RData
 fmi_api.txt
-mebike.Rproj
 dark_sky_api.txt
-mybike.Rproj
 ggmapTemp.png
 drytrip.Rproj
+*.RData

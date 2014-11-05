@@ -1,6 +1,7 @@
 library("rjson")
 library("RCurl")
 library("reshape2")
+# install_github("ouzor/Rforecastio")
 library("Rforecastio")
 library("ggplot2")
 theme_set(theme_bw(16))
@@ -28,27 +29,42 @@ load("helsinki_map_stamen-toner.RData")
 # Load bicycle accident data (for Helsinki only)
 # load("bike_accidents.RData")
 
+# Set time zone to Helsinki
+Sys.setenv(TZ="Europe/Helsinki")
+
 shinyServer(function (input, output) {
   
   ## CYCLING ROUTE #######
   get_route <- reactive({
-    message("Retreiving route data")
+    message("Getting route data")
     #     if (is.null(input$start.address) | is.null(input$end.address))
     #       return(NULL)
-    start.coords <- geocode_place(input$start.address)
-    end.coords <- geocode_place(input$end.address)
-    if (input$via.addresses!="") {
-      via.addresses <- unlist(strsplit(input$via.addresses, split=";"))
-      if (length(via.addresses) > 5)
-        stop("Maximum number of via points is five!")
-      names(via.addresses) <- via.addresses
-      via.coords <- lapply(via.addresses, geocode_place)
-      route.list <- cycling_route(start.coords, end.coords, via.coords)
-    }
     
-    # Get cycling route and process into a data frame
-    else {
-      route.list <- cycling_route(start.coords, end.coords)
+    route.name <- paste(input$start.address, input$end.address, input$via.addresses, sep="_")
+    route.file <- paste0(route.name, ".RData")
+    # Read existing route?
+    if (file.exists(route.file)) {
+      message("Loading route from file: ", route.file)
+      load(route.file)
+    # Fetch from Reittiopas API      
+    } else  {
+      message("Retrieving route from Reittiopas API")
+      start.coords <- geocode_place(input$start.address)
+      end.coords <- geocode_place(input$end.address)
+      if (input$via.addresses!="") {
+        via.addresses <- unlist(strsplit(input$via.addresses, split="_"))
+        if (length(via.addresses) > 5)
+          stop("Maximum number of via points is five!")
+        names(via.addresses) <- via.addresses
+        via.coords <- lapply(via.addresses, geocode_place)
+        route.list <- cycling_route(start.coords, end.coords, via.coords)
+      }
+      
+      # Get cycling route and process into a data frame
+      else {
+        route.list <- cycling_route(start.coords, end.coords)
+      }
+      save(route.list, file=route.file)
     }
     route.points.df <- do.call(rbind, lapply(route.list$path, process_path))
     route.summary.df <- summarise_route(route.list)    
@@ -130,7 +146,8 @@ shinyServer(function (input, output) {
     # Process times and waypoints
     fio.df$date <- as.Date(fio.df$time)#format(fio.df$time, "%Y-%M-%D")
     fio.df$start.hour <- as.numeric(format(fio.df$time, "%H")) - fio.df$WP + 1
-    fio.df$start.hour[fio.df$start.hour <= 0] <- 24 + fio.df$start.hour[fio.df$start.hour <= 0]
+    if (any(fio.df$start.hour <= 0))
+      fio.df$start.hour[fio.df$start.hour <= 0] <- 24 + fio.df$start.hour[fio.df$start.hour <= 0]
     return(fio.df)  
     
     #     fio.list <- lapply(waypoints.df$Ind, function(i) {res=fio.forecast(fio.api.key, waypoints.df$lat[i], waypoints.df$lon[i])$hourly.df; res$WP=i; res})

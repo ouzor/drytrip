@@ -1,13 +1,5 @@
 # Test forecast.io
 
-
-# input = list()
-# input$start.address = "Kamppi"
-# input$end.address = "Kamppi"
-# input$via.addresses = "Olari;Nuuksio;Leppävaara"
-# input$cycling.speed = 20
-# input$forecast.length=5
-
 library(devtools)
 # Had to fork to change to use SI units
 install_github("ouzor/Rforecastio")
