@@ -11,6 +11,7 @@ Features to be added
 * GPX upload for routes
 * FMI weather forecast data retrieval. This is actually already implemented, but it does not work in the shinyapps.io service. I am considering to setup Shiny on the okf.fi server, which would solve this problem.
 * Weather forecast visualization improvements
+ * Add possibility to show the visualizations horizontally
  * Show more data
  * Show sunset time
 
