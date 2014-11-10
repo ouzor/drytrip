@@ -66,7 +66,7 @@ shinyUI(fluidPage(
                       min=1, max=10, value=5, step = 1),
           h4("Weather forecast at each waypoint for different starting hours"),
           uiOutput("fio_plot_ui"), # plotOutput("fio_plot")
-          p("Known issues: Start times are in GMT+0 time zone (two hours less than in Finland). Latest start time is 24:00.")
+          p("Known issues: Latest start time is 24:00.")
         ),
         
         conditionalPanel(
