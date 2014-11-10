@@ -1,7 +1,7 @@
 # Script for testing everything
 
-library("devtools")
-install_github("ouzor/Rforecastio")
+# library("devtools")
+# install_github("ouzor/Rforecastio")
 # Load data
 load("drytrip-shiny/helsinki_map_stamen-toner.RData")
 fio.api.key <- scan(file="drytrip-shiny/dark_sky_api.txt", what="character")

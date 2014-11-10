@@ -40,7 +40,7 @@ shinyServer(function (input, output) {
     #     if (is.null(input$start.address) | is.null(input$end.address))
     #       return(NULL)
     
-    route.name <- paste(input$start.address, input$end.address, input$via.addresses, sep="_")
+    route.name <- paste(input$start.address, input$via.addresses, input$end.address, sep="_")
     route.file <- paste0(route.name, ".RData")
     # Read existing route?
     if (file.exists(route.file)) {
@@ -145,9 +145,9 @@ shinyServer(function (input, output) {
     }
     # Process times and waypoints
     fio.df$date <- as.Date(fio.df$time)#format(fio.df$time, "%Y-%M-%D")
-    fio.df$start.hour <- as.numeric(format(fio.df$time, "%H")) - fio.df$WP + 1
-    if (any(fio.df$start.hour <= 0))
-      fio.df$start.hour[fio.df$start.hour <= 0] <- 24 + fio.df$start.hour[fio.df$start.hour <= 0]
+    fio.df$start.hour.num <- as.numeric(format(fio.df$time, "%H")) - fio.df$WP + 1
+    if (any(fio.df$start.hour.num <= 0))
+      fio.df$start.hour.num[fio.df$start.hour.num <= 0] <- 24 + fio.df$start.hour.num[fio.df$start.hour.num <= 0]
     return(fio.df)  
     
     #     fio.list <- lapply(waypoints.df$Ind, function(i) {res=fio.forecast(fio.api.key, waypoints.df$lat[i], waypoints.df$lon[i])$hourly.df; res$WP=i; res})
@@ -159,9 +159,10 @@ shinyServer(function (input, output) {
   output$fio_plot <- renderPlot({
     fio.df <- get_fio()
     # subset based on date and start time
-    fio.df <- subset(fio.df, start.hour %in% (1:input$forecast.length+fio.df$start.hour[1]-1))
+    fio.df <- subset(fio.df, start.hour.num %in% (1:input$forecast.length+fio.df$start.hour.num[1]-1))
     #     fio.df <- subset(fio.df, date==fio.df$date[1] & start.hour %in% (1:input$forecast.length+fio.df$start.hour[1]-1))
-    fio.df$start.hour <- paste0(fio.df$start.hour, ":00")
+    fio.df$start.hour <- factor(paste0(fio.df$start.hour.num, ":00"), levels=paste0(sort(unique(fio.df$start.hour.num)), ":00"))
+    
     #    fio.df$WP <- as.character(fio.df$WP)
     fio.df$WP <- factor(fio.df$WP, levels=rev(unique(fio.df$WP)))
     p.precip <- ggplot(fio.df, aes(x=WP, y=precipIntensity)) + 
