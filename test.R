@@ -18,6 +18,13 @@ input$cycling.speed = 20
 input$forecast.length=5
 
 
+input = list()
+input$start.address = "Kamppi"
+input$end.address = "kalevanvainio"
+input$via.addresses = ""
+input$cycling.speed = 20
+input$forecast.length=5
+
 # Try changing time zone
 Sys.setenv(TZ="Europe/Paris")
 Sys.setenv(TZ="Europe/Helsinki")

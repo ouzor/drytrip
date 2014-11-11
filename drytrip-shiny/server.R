@@ -66,7 +66,9 @@ shinyServer(function (input, output) {
       }
       save(route.list, file=route.file)
     }
+    message("TEST!")
     route.points.df <- do.call(rbind, lapply(route.list$path, process_path))
+    message("TEST2!!!")
     route.summary.df <- summarise_route(route.list)    
     return(list(points=route.points.df, summary=route.summary.df))
   })  

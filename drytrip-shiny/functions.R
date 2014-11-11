@@ -6,7 +6,10 @@ process_path <- function(path.point) {
   # Slow
   #  points.df <- reshape2::dcast(melt(path.point$points), L1 ~ L2)
   # Faster
-  points.df <- as.data.frame(t(sapply(path.point$points, function(point) c(point$x, point$y, point$z))))
+#   points.df <- as.data.frame(t(sapply(path.point$points, function(point) c(point$x, point$y, point$z))))
+  # Need to take care of possible NA values in z
+  points.df <- as.data.frame(t(sapply(path.point$points, function(point) {if(is.null(point$z)) point$z=NA;
+                                                                          c(point$x, point$y, point$z)})))
   names(points.df) <- c("x", "y", "z")
   points.df$type <- path.point$type
   return(points.df)
